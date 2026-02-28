@@ -120,7 +120,7 @@ echo "  Waiting for PostgreSQL container to start..."
 timeout 120 bash -c 'until podman container inspect postgres --format "{{.State.Running}}" 2>/dev/null | grep -q true; do sleep 2; done' \
     || { echo "Error: PostgreSQL container did not start in time"; exit 1; }
 echo "  Waiting for PostgreSQL to be healthy..."
-timeout 120 bash -c 'until podman healthcheck run postgres &>/dev/null; do sleep 2; done' \
+timeout 120 bash -c 'until podman exec postgres pg_isready -U n8n &>/dev/null; do sleep 2; done' \
     || { echo "Error: PostgreSQL did not become healthy in time"; exit 1; }
 echo "  ✓ PostgreSQL ready"
 
@@ -130,7 +130,7 @@ echo "  Waiting for Redis container to start..."
 timeout 60 bash -c 'until podman container inspect redis --format "{{.State.Running}}" 2>/dev/null | grep -q true; do sleep 2; done' \
     || { echo "Error: Redis container did not start in time"; exit 1; }
 echo "  Waiting for Redis to be healthy..."
-timeout 60 bash -c 'until podman healthcheck run redis &>/dev/null; do sleep 2; done' \
+timeout 60 bash -c 'until podman exec redis redis-cli ping &>/dev/null; do sleep 2; done' \
     || { echo "Error: Redis did not become healthy in time"; exit 1; }
 echo "  ✓ Redis ready"
 

@@ -21,6 +21,7 @@ Label=app=n8n
 
 [Service]
 Restart=always
+TimeoutStartSec=0
 
 [Install]
 WantedBy=default.target

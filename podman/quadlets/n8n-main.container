@@ -25,6 +25,7 @@ Label=app=n8n
 
 [Service]
 Restart=always
+TimeoutStartSec=0
 ExecStartPre=/bin/sh -c 'until podman exec postgres pg_isready -U n8n; do sleep 2; done'
 ExecStartPre=/bin/sh -c 'until podman exec redis redis-cli ping; do sleep 2; done'
 

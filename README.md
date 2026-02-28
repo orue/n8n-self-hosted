@@ -33,7 +33,23 @@ Self-hosted N8N workflow automation with queue-based worker architecture.
 - Rootless Podman configured (`/etc/subuid` and `/etc/subgid` entries)
 - systemd user session active
 
-#### 1. Setup
+#### 1. Configure Environment
+
+On first run the script creates `.env` from the template and exits — so configure it before starting services:
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+**Required changes:**
+
+- `POSTGRES_PASSWORD`: Strong database password
+- `N8N_PASSWORD`: Your N8N login password
+- `N8N_HOST`: Your server IP address or domain
+- `N8N_SECURE_COOKIE`: Set `false` for HTTP, `true` when behind an HTTPS reverse proxy
+
+#### 2. Run Setup
 
 ```bash
 ./init-project.sh
@@ -52,20 +68,9 @@ This will:
 4. Enable linger for boot persistence
 5. Start services in order: postgres → redis → n8n-main → workers
 
-#### 2. Configure Environment
-
-Edit `.env` before the first start:
-
-```bash
-nano .env
-```
-
-**Required changes:**
-
-- `POSTGRES_PASSWORD`: Strong database password
-- `N8N_PASSWORD`: Your N8N login password
-- `N8N_HOST`: Your server IP address or domain
-- `N8N_SECURE_COOKIE`: Set `false` for HTTP, `true` when behind an HTTPS reverse proxy
+> **Note:** First run pulls container images and initialises the database.
+> PostgreSQL setup can take up to 2 minutes; n8n image pull may take several minutes
+> depending on your connection. This is normal — subsequent starts are fast.
 
 #### 3. Access N8N
 
@@ -209,6 +214,7 @@ transient, read-only directory. `systemctl enable` cannot write symlinks there a
 fail with this error.
 
 **Do not use `systemctl enable` on quadlet units.** Boot persistence is handled automatically:
+
 - Each `.container` file has `WantedBy=default.target` in its `[Install]` section, which
   the quadlet generator turns into a wants-symlink on every `daemon-reload`.
 - `loginctl enable-linger` (run by the setup script) ensures the user session — and all
@@ -216,6 +222,22 @@ fail with this error.
 
 Use `systemctl --user start` to bring units up manually, and rely on the generator for
 everything else.
+
+---
+
+### `n8n-main.service` fails or keeps restarting (Quadlets)
+
+If `systemctl --user status n8n-main.service` shows the service failing or restarting repeatedly, check the logs:
+
+```bash
+journalctl --user -xeu n8n-main.service --no-pager | tail -50
+podman logs n8n-main
+```
+
+Common causes:
+
+- **Wrong `.env` values** — verify `POSTGRES_PASSWORD`, `N8N_USER`, `N8N_PASSWORD` are set correctly
+- **Database not ready** — postgres takes up to 2 minutes on first run; re-run setup if it timed out early
 
 ---
 

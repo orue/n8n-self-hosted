@@ -11,6 +11,19 @@ Deploy N8N using native Podman Quadlets — systemd unit files that manage conta
 
 ## Setup
 
+### 1. Configure Environment
+
+The setup script exits on first run if `.env` isn't ready — configure it first:
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Set at minimum: `POSTGRES_PASSWORD`, `N8N_PASSWORD`, `N8N_HOST`, `N8N_SECURE_COOKIE`.
+
+### 2. Run Setup
+
 From the **project root**:
 
 ```bash
@@ -29,7 +42,10 @@ The script:
 3. Copies Quadlet files from `podman/quadlets/` to `~/.config/containers/systemd/`, substituting the absolute repo path
 4. Runs `loginctl enable-linger` for boot persistence
 5. Runs `systemctl --user daemon-reload` to trigger the Quadlet generator
-6. Enables and starts services in order: postgres → redis → n8n-main → workers
+6. Starts services in order: postgres → redis → n8n-main → workers
+
+> **First run:** PostgreSQL initialisation takes up to 2 minutes. The n8n image pull
+> may take several minutes depending on your connection. Subsequent starts are fast.
 
 ## Unit Files
 
@@ -101,10 +117,6 @@ The last 7 backups are retained automatically.
 
 `ContainerName=postgres` and `ContainerName=redis` are set so container hostnames match the values in `.env` and `docker-compose.yml`. No `.env` changes are needed when switching between Scenario A and Scenario B.
 
-## UID Mapping Note
-
-`n8n-main.container` uses `UserNS=keep-id:uid=1000,gid=1000`, which maps the host user to UID 1000 inside the container. This means no `chown` is needed on `data/n8n`.
-
 ## SELinux Note
 
 Volume mounts use the `:Z` flag (e.g., `Volume=n8n-data.volume:/home/node/.n8n:Z`), which relabels the volume for SELinux on RHEL/Fedora. This flag is silently ignored on non-SELinux systems.
@@ -112,13 +124,15 @@ Volume mounts use the `:Z` flag (e.g., `Volume=n8n-data.volume:/home/node/.n8n:Z
 ## Uninstalling
 
 ```bash
-# Stop and disable all N8N services
+# Stop all N8N services
 systemctl --user stop n8n-main 'n8n-worker@1' 'n8n-worker@2' n8n-redis n8n-postgres
-systemctl --user disable n8n-main 'n8n-worker@1' 'n8n-worker@2' n8n-redis n8n-postgres
 
 # Remove installed unit files
 rm ~/.config/containers/systemd/n8n-*.{network,volume,container}
 
-# Reload daemon
+# Reload daemon (removes generated units)
 systemctl --user daemon-reload
 ```
+
+> **Note:** `systemctl disable` does not work on quadlet-generated units. Removing the unit
+> files and reloading the daemon is the correct way to unregister them.

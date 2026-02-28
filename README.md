@@ -279,7 +279,7 @@ rm -rf data/*
 
 ## Directory Structure
 
-```
+```text
 .
 ├── docker-compose.yml      # Services definition (compose)
 ├── init-project.sh         # Entry point: auto-detects Quadlets on Linux+systemd
@@ -313,4 +313,4 @@ rm -rf data/*
 
 ## License
 
-See N8N license at: https://github.com/n8n-io/n8n/blob/master/LICENSE.md
+See [N8N license](https://github.com/n8n-io/n8n/blob/master/LICENSE.md).

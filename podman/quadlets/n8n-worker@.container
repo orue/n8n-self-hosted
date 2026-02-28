@@ -1,0 +1,26 @@
+[Unit]
+Description=N8N worker instance %i
+After=n8n-main.service
+
+[Container]
+Image=n8nio/n8n:latest
+ContainerName=n8n-worker-%i
+Exec=worker
+EnvironmentFile=REPO_DIR_PLACEHOLDER/.env
+Environment=DB_TYPE=postgresdb
+Environment=DB_POSTGRESDB_HOST=postgres
+Environment=DB_POSTGRESDB_PORT=5432
+Environment=DB_POSTGRESDB_DATABASE=n8n
+Environment=DB_POSTGRESDB_USER=n8n
+Environment=EXECUTIONS_MODE=queue
+Environment=QUEUE_BULL_REDIS_HOST=redis
+Environment=QUEUE_BULL_REDIS_PORT=6379
+Volume=n8n-data.volume:/home/node/.n8n:Z
+Network=n8n-network.network
+Label=app=n8n
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

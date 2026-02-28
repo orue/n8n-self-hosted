@@ -25,21 +25,35 @@ cd "$PROJECT_DIR"
 echo "Project directory: $PROJECT_DIR"
 echo ""
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Error: Docker is not installed${NC}"
-    echo "Please install Docker first: https://docs.docker.com/engine/install/"
-    exit 1
-fi
+detect_runtime() {
+    if command -v podman &> /dev/null; then
+        CONTAINER_CMD="podman"
+        if podman compose version &> /dev/null 2>&1; then
+            COMPOSE_CMD="podman compose"
+        elif command -v podman-compose &> /dev/null; then
+            COMPOSE_CMD="podman-compose"
+        else
+            echo "Error: Podman found but no compose provider. Install podman-compose or upgrade Podman >= 4.7"
+            exit 1
+        fi
+        IS_PODMAN=true
+    elif command -v docker &> /dev/null; then
+        CONTAINER_CMD="docker"
+        COMPOSE_CMD="docker compose"
+        IS_PODMAN=false
+    else
+        echo "Error: Neither Docker nor Podman found."; exit 1
+    fi
+}
+detect_runtime
 
-# Check if Docker Compose is available
-if ! docker compose version &> /dev/null; then
-    echo -e "${RED}Error: Docker Compose is not available${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Docker is installed${NC}"
+echo -e "${GREEN}✓ Runtime detected: ${CONTAINER_CMD} (${COMPOSE_CMD})${NC}"
 echo ""
+
+if [ "$IS_PODMAN" = true ] && ! grep -q "^$(id -un):" /etc/subuid 2>/dev/null; then
+    echo -e "${RED}Error: No subuid entry for $(id -un). Run: sudo usermod --add-subuids 100000-165535 $(id -un)${NC}"
+    exit 1
+fi
 
 # Create necessary directories
 echo "Creating directory structure..."
@@ -54,7 +68,11 @@ echo ""
 
 # Set proper permissions for N8N data directory
 echo "Setting permissions..."
-sudo chown -R 1000:1000 data/n8n
+if [ "$IS_PODMAN" = true ]; then
+    podman unshare chown -R 1000:1000 "$PROJECT_DIR/data/n8n"
+else
+    sudo chown -R 1000:1000 data/n8n
+fi
 echo -e "${GREEN}✓ Permissions set${NC}"
 echo ""
 
@@ -109,9 +127,9 @@ fi
 echo -e "${GREEN}✓ .env validation passed${NC}"
 echo ""
 
-# Pull Docker images
-echo "Pulling Docker images..."
-docker compose pull
+# Pull images
+echo "Pulling images..."
+$COMPOSE_CMD pull
 echo -e "${GREEN}✓ Images pulled${NC}"
 echo ""
 
@@ -121,14 +139,14 @@ echo "=========================================="
 echo ""
 echo "Next steps:"
 echo "1. Review your .env file: nano .env"
-echo "2. Start N8N: docker compose up -d"
-echo "3. View logs: docker compose logs -f"
+echo "2. Start N8N: $COMPOSE_CMD up -d"
+echo "3. View logs: $COMPOSE_CMD logs -f"
 echo "4. Access N8N at: http://\$(grep N8N_HOST .env | cut -d '=' -f2):5678"
 echo ""
 echo "Useful commands:"
-echo "  - Start: docker compose up -d"
-echo "  - Stop: docker compose down"
-echo "  - Logs: docker compose logs -f"
-echo "  - Status: docker compose ps"
+echo "  - Start: $COMPOSE_CMD up -d"
+echo "  - Stop: $COMPOSE_CMD down"
+echo "  - Logs: $COMPOSE_CMD logs -f"
+echo "  - Status: $COMPOSE_CMD ps"
 echo "  - Backup: ./scripts/backup.sh"
 echo ""

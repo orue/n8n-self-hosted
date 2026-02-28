@@ -1,0 +1,4 @@
+[Volume]
+Device=REPO_DIR_PLACEHOLDER/data/postgres
+Options=bind
+Label=app=n8n

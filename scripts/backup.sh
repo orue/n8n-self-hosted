@@ -12,6 +12,28 @@ BACKUP_NAME="n8n_backup_${TIMESTAMP}"
 
 cd "$PROJECT_DIR"
 
+detect_runtime() {
+    if command -v podman &> /dev/null; then
+        CONTAINER_CMD="podman"
+        if podman compose version &> /dev/null 2>&1; then
+            COMPOSE_CMD="podman compose"
+        elif command -v podman-compose &> /dev/null; then
+            COMPOSE_CMD="podman-compose"
+        else
+            echo "Error: Podman found but no compose provider. Install podman-compose or upgrade Podman >= 4.7"
+            exit 1
+        fi
+        IS_PODMAN=true
+    elif command -v docker &> /dev/null; then
+        CONTAINER_CMD="docker"
+        COMPOSE_CMD="docker compose"
+        IS_PODMAN=false
+    else
+        echo "Error: Neither Docker nor Podman found."; exit 1
+    fi
+}
+detect_runtime
+
 echo "=========================================="
 echo "N8N Backup - $TIMESTAMP"
 echo "=========================================="
@@ -21,7 +43,7 @@ echo ""
 mkdir -p "$BACKUP_DIR"
 
 # Check if containers are running
-if ! docker compose ps | grep -q "Up"; then
+if ! $COMPOSE_CMD ps | grep -q "Up\|running"; then
     echo "Warning: N8N containers are not running"
     read -p "Continue with backup? (y/n) " -n 1 -r
     echo
@@ -35,7 +57,7 @@ mkdir -p "$BACKUP_DIR/$BACKUP_NAME"
 
 # Backup PostgreSQL database
 echo "Backing up PostgreSQL database..."
-docker compose exec -T postgres pg_dump -U n8n n8n > "$BACKUP_DIR/$BACKUP_NAME/postgres_dump.sql"
+$COMPOSE_CMD exec -T postgres pg_dump -U n8n n8n > "$BACKUP_DIR/$BACKUP_NAME/postgres_dump.sql"
 echo "✓ Database backed up"
 
 # Backup N8N data directory
@@ -51,7 +73,7 @@ echo "✓ Environment file backed up"
 cat > "$BACKUP_DIR/$BACKUP_NAME/backup_info.txt" << INFO
 Backup Date: $(date)
 Hostname: $(hostname)
-N8N Version: $(docker compose exec -T n8n-main n8n --version 2>/dev/null || echo "N/A")
+N8N Version: $($COMPOSE_CMD exec -T n8n-main n8n --version 2>/dev/null || echo "N/A")
 INFO
 
 echo ""

@@ -1,0 +1,23 @@
+[Unit]
+Description=N8N PostgreSQL database
+After=network.target
+
+[Container]
+Image=postgres:15-alpine
+ContainerName=postgres
+EnvironmentFile=REPO_DIR_PLACEHOLDER/.env
+Environment=POSTGRES_USER=n8n
+Environment=POSTGRES_DB=n8n
+Volume=n8n-postgres.volume:/var/lib/postgresql/data:Z
+Network=n8n-network.network
+HealthCmd=pg_isready -U n8n
+HealthInterval=10s
+HealthTimeout=5s
+HealthRetries=5
+Label=app=n8n
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

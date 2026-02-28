@@ -1,0 +1,20 @@
+[Unit]
+Description=N8N Redis queue
+After=network.target
+
+[Container]
+Image=redis:7-alpine
+ContainerName=redis
+Volume=n8n-redis.volume:/data:Z
+Network=n8n-network.network
+HealthCmd=redis-cli ping
+HealthInterval=10s
+HealthTimeout=5s
+HealthRetries=5
+Label=app=n8n
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

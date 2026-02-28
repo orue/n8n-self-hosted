@@ -1,0 +1,6 @@
+[Unit]
+Description=N8N application network
+
+[Network]
+Driver=bridge
+Label=app=n8n

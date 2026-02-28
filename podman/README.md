@@ -72,8 +72,10 @@ Start additional worker instances by incrementing the instance number:
 
 ```bash
 systemctl --user start 'n8n-worker@3.service'
-systemctl --user enable 'n8n-worker@3.service'   # persist across reboots
 ```
+
+> **Note:** `systemctl enable` does not work on quadlet-generated units — they are transient.
+> To make extra instances permanent, add the corresponding `start` calls to `podman/scripts/setup-quadlets.sh`.
 
 Stop a worker:
 

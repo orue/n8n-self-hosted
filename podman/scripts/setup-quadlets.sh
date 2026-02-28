@@ -115,28 +115,28 @@ echo ""
 echo "Starting services..."
 
 echo "  Starting n8n-postgres..."
-systemctl --user enable --now n8n-postgres.service
+systemctl --user start n8n-postgres.service
 echo "  Waiting for PostgreSQL to be healthy..."
 timeout 60 bash -c 'until podman healthcheck run postgres &>/dev/null; do sleep 2; done' \
     || { echo "Error: PostgreSQL did not become healthy in time"; exit 1; }
 echo "  ✓ PostgreSQL ready"
 
 echo "  Starting n8n-redis..."
-systemctl --user enable --now n8n-redis.service
+systemctl --user start n8n-redis.service
 echo "  Waiting for Redis to be healthy..."
 timeout 60 bash -c 'until podman healthcheck run redis &>/dev/null; do sleep 2; done' \
     || { echo "Error: Redis did not become healthy in time"; exit 1; }
 echo "  ✓ Redis ready"
 
 echo "  Starting n8n-main..."
-systemctl --user enable --now n8n-main.service
+systemctl --user start n8n-main.service
 sleep 5
 echo "  ✓ N8N main started"
 
 echo "  Starting n8n-worker@1..."
-systemctl --user enable --now "n8n-worker@1.service"
+systemctl --user start "n8n-worker@1.service"
 echo "  Starting n8n-worker@2..."
-systemctl --user enable --now "n8n-worker@2.service"
+systemctl --user start "n8n-worker@2.service"
 echo "  ✓ Workers started"
 
 echo ""

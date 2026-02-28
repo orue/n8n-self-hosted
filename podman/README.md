@@ -4,7 +4,7 @@ Deploy N8N using native Podman Quadlets — systemd unit files that manage conta
 
 ## Requirements
 
-- **Linux host with systemd** (Quadlets do NOT work on macOS; use `podman compose` from the project root instead)
+- **Linux host with systemd** (Quadlets do NOT work on macOS; use `./init-project.sh --runtime=compose` on macOS)
 - **Podman >= 4.4** (built-in Quadlet generator)
 - **Rootless Podman** configured: entries in `/etc/subuid` and `/etc/subgid`
 - Active systemd user session (`loginctl enable-linger <user>` handled by setup script)

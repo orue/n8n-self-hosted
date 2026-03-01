@@ -20,7 +20,7 @@ cp .env.example .env
 nano .env
 ```
 
-Set at minimum: `POSTGRES_PASSWORD`, `N8N_PASSWORD`, `N8N_HOST`, `N8N_SECURE_COOKIE`.
+Set at minimum: `POSTGRES_PASSWORD`, `DB_POSTGRESDB_PASSWORD` (same value as `POSTGRES_PASSWORD`), `N8N_PASSWORD`, `N8N_HOST`, `N8N_SECURE_COOKIE`.
 
 ### 2. Run Setup
 

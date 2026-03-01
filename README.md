@@ -26,7 +26,8 @@ nano .env
 
 **Required changes:**
 
-- `POSTGRES_PASSWORD` — strong database password
+- `POSTGRES_PASSWORD` — strong database password (used by the postgres container)
+- `DB_POSTGRESDB_PASSWORD` — must be the **same value** as `POSTGRES_PASSWORD` (used by n8n to connect)
 - `N8N_PASSWORD` — your N8N login password
 - `N8N_HOST` — your server IP address or domain
 - `N8N_SECURE_COOKIE` — `false` for HTTP, `true` behind an HTTPS reverse proxy

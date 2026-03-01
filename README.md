@@ -30,29 +30,29 @@
 
 ```text
                         ┌─────────────────────────────────────────────┐
-                        │            systemd user session              │
-                        │                                              │
+                        │            systemd user session             │
+                        │                                             │
   Browser / API         │  ┌──────────────┐    ┌───────────────────┐  │
   ──────────────────────┼─▶│  n8n-main    │    │  n8n-worker@1     │  │
          :5678          │  │  (UI + API)  │    │  n8n-worker@2     │  │
                         │  └──────┬───────┘    └────────┬──────────┘  │
-                        │         │  queue jobs          │ consume     │
-                        │         ▼                      ▼             │
+                        │         │  queue jobs         │ consume     │
+                        │         ▼                     ▼             │
                         │  ┌──────────────┐    ┌───────────────────┐  │
                         │  │  PostgreSQL  │    │      Redis        │  │
                         │  │  (data/creds)│    │  (job queue)      │  │
                         │  └──────────────┘    └───────────────────┘  │
-                        │                                              │
-                        │  All containers share: n8n-network (bridge)  │
+                        │                                             │
+                        │  All containers share: n8n-network (bridge) │
                         └─────────────────────────────────────────────┘
 ```
 
-| Container | Image | Role |
-|-----------|-------|------|
-| `postgres` | `postgres:15-alpine` | Workflow data, credentials, execution history |
-| `redis` | `redis:7-alpine` | Bull job queue (AOF persistence) |
-| `n8n-main` | `n8nio/n8n:latest` | Web UI, REST API, webhook receiver |
-| `n8n-worker@1`, `@2` | `n8nio/n8n:latest` | Execute queued workflow jobs |
+| Container            | Image                | Role                                          |
+| -------------------- | -------------------- | --------------------------------------------- |
+| `postgres`           | `postgres:15-alpine` | Workflow data, credentials, execution history |
+| `redis`              | `redis:7-alpine`     | Bull job queue (AOF persistence)              |
+| `n8n-main`           | `n8nio/n8n:latest`   | Web UI, REST API, webhook receiver            |
+| `n8n-worker@1`, `@2` | `n8nio/n8n:latest`   | Execute queued workflow jobs                  |
 
 **Why Podman Quadlets?**
 Quadlets are systemd unit files managed by Podman's built-in generator — no Docker daemon, no docker-compose, no root. Containers run as your own user and restart automatically like any other systemd service.
@@ -61,12 +61,12 @@ Quadlets are systemd unit files managed by Podman's built-in generator — no Do
 
 ## Requirements
 
-| Requirement | Notes |
-|-------------|-------|
-| Linux + systemd | Ubuntu 24.04 LTS recommended |
-| Podman >= 4.4 | Built-in Quadlet generator |
-| Rootless Podman | Entries in `/etc/subuid` & `/etc/subgid` |
-| `openssl` | For generating `N8N_ENCRYPTION_KEY` (usually pre-installed) |
+| Requirement     | Notes                                                       |
+| --------------- | ----------------------------------------------------------- |
+| Linux + systemd | Ubuntu 24.04 LTS recommended                                |
+| Podman >= 4.4   | Built-in Quadlet generator                                  |
+| Rootless Podman | Entries in `/etc/subuid` & `/etc/subgid`                    |
+| `openssl`       | For generating `N8N_ENCRYPTION_KEY` (usually pre-installed) |
 
 > **macOS / Windows:** Quadlets require Linux + systemd and cannot run in a VM-based Podman Desktop session without a full Linux environment.
 
@@ -86,15 +86,15 @@ nano .env   # set passwords, host, timezone
 
 **Required variables in `.env`:**
 
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_PASSWORD` | Strong password for the PostgreSQL database |
-| `DB_POSTGRESDB_PASSWORD` | **Must match** `POSTGRES_PASSWORD` — used by n8n to connect |
-| `N8N_PASSWORD` | Your n8n admin login password |
-| `N8N_HOST` | Server IP or domain (e.g. `192.168.1.100` or `n8n.example.com`) |
-| `N8N_SECURE_COOKIE` | `false` for HTTP · `true` when behind an HTTPS reverse proxy |
-| `N8N_ENCRYPTION_KEY` | Leave blank — auto-generated on first run and saved to `.env` |
-| `TIMEZONE` | Your local timezone (e.g. `America/New_York`) |
+| Variable                 | Description                                                     |
+| ------------------------ | --------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`      | Strong password for the PostgreSQL database                     |
+| `DB_POSTGRESDB_PASSWORD` | **Must match** `POSTGRES_PASSWORD` — used by n8n to connect     |
+| `N8N_PASSWORD`           | Your n8n admin login password                                   |
+| `N8N_HOST`               | Server IP or domain (e.g. `192.168.1.100` or `n8n.example.com`) |
+| `N8N_SECURE_COOKIE`      | `false` for HTTP · `true` when behind an HTTPS reverse proxy    |
+| `N8N_ENCRYPTION_KEY`     | Leave blank — auto-generated on first run and saved to `.env`   |
+| `TIMEZONE`               | Your local timezone (e.g. `America/New_York`)                   |
 
 ### 2. Run setup
 
@@ -103,6 +103,7 @@ nano .env   # set passwords, host, timezone
 ```
 
 The script will:
+
 1. Validate Podman version and rootless configuration
 2. Create local `data/` directories
 3. Install Quadlet unit files → `~/.config/containers/systemd/`
@@ -179,6 +180,7 @@ systemctl --user list-units 'n8n-*'
 ```
 
 This will:
+
 1. Prompt to run a backup first
 2. Pull the latest `n8nio/n8n` image
 3. Gracefully stop workers, then `n8n-main`
@@ -205,12 +207,12 @@ This will:
 
 Backups are written to `backups/n8n_backup_<timestamp>/` and include:
 
-| File | Contents |
-|------|----------|
-| `postgres.dump` | Full PostgreSQL dump (custom format, compressed) |
-| `n8n_data.tar.gz` | n8n data directory (custom nodes, key cache) |
-| `.env.backup` | Copy of your environment file (permissions: 600) |
-| `backup_info.txt` | Metadata + restore instructions |
+| File              | Contents                                         |
+| ----------------- | ------------------------------------------------ |
+| `postgres.dump`   | Full PostgreSQL dump (custom format, compressed) |
+| `n8n_data.tar.gz` | n8n data directory (custom nodes, key cache)     |
+| `.env.backup`     | Copy of your environment file (permissions: 600) |
+| `backup_info.txt` | Metadata + restore instructions                  |
 
 The last **7 backups** are retained automatically. Override with `--retention N`:
 
@@ -267,16 +269,16 @@ systemctl --user stop 'n8n-worker@2.service'
 
 ## Security Hardening
 
-| Recommendation | Status |
-|----------------|--------|
-| Never commit `.env` to Git | `.gitignore` enforces this |
-| `N8N_ENCRYPTION_KEY` set explicitly | Auto-generated by `setup.sh` if blank |
-| Strong, unique passwords | Set in `.env` |
-| Containers run rootless (no root daemon) | Podman default |
-| `UserNS=keep-id` prevents UID remapping surprises | Set in all n8n containers |
-| HTTPS + reverse proxy | Set `N8N_SECURE_COOKIE=true` + configure nginx/Caddy |
-| Firewall: restrict port 5678 to trusted IPs | Recommended for production |
-| Keep images updated | Use `update.sh` regularly |
+| Recommendation                                    | Status                                               |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| Never commit `.env` to Git                        | `.gitignore` enforces this                           |
+| `N8N_ENCRYPTION_KEY` set explicitly               | Auto-generated by `setup.sh` if blank                |
+| Strong, unique passwords                          | Set in `.env`                                        |
+| Containers run rootless (no root daemon)          | Podman default                                       |
+| `UserNS=keep-id` prevents UID remapping surprises | Set in all n8n containers                            |
+| HTTPS + reverse proxy                             | Set `N8N_SECURE_COOKIE=true` + configure nginx/Caddy |
+| Firewall: restrict port 5678 to trusted IPs       | Recommended for production                           |
+| Keep images updated                               | Use `update.sh` regularly                            |
 
 **Reverse proxy example (Caddy):**
 
@@ -312,6 +314,7 @@ podman logs n8n-main
 ```
 
 Common causes:
+
 - **`CHANGE_ME` still in `.env`** — setup.sh rejects this, but check manually
 - **`DB_POSTGRESDB_PASSWORD` mismatch** — must equal `POSTGRES_PASSWORD` exactly
 - **PostgreSQL not ready** — first run takes up to 2 min; re-run `setup.sh` if it timed out

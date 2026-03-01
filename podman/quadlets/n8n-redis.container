@@ -5,6 +5,7 @@ After=network.target
 [Container]
 Image=redis:7-alpine
 ContainerName=redis
+Exec=redis-server --appendonly yes --save ""
 Volume=n8n-redis.volume:/data:Z
 Network=n8n-network.network
 HealthCmd=redis-cli ping

@@ -4,7 +4,7 @@ Deploy N8N using native Podman Quadlets — systemd unit files that manage conta
 
 ## Requirements
 
-- **Linux host with systemd** (Quadlets do NOT work on macOS; use `./init-project.sh --runtime=compose` on macOS)
+- **Linux host with systemd** (Quadlets require a native Linux environment with systemd)
 - **Podman >= 4.4** (built-in Quadlet generator)
 - **Rootless Podman** configured: entries in `/etc/subuid` and `/etc/subgid`
 - Active systemd user session (`loginctl enable-linger <user>` handled by setup script)
@@ -115,7 +115,7 @@ The last 7 backups are retained automatically.
 
 ## DNS / Hostname Note
 
-`ContainerName=postgres` and `ContainerName=redis` are set so container hostnames match the values in `.env` and `docker-compose.yml`. No `.env` changes are needed when switching between Scenario A and Scenario B.
+`ContainerName=postgres` and `ContainerName=redis` are set explicitly so container DNS names match the `DB_POSTGRESDB_HOST=postgres` and `QUEUE_BULL_REDIS_HOST=redis` values used by n8n. Do not rename these containers without updating the corresponding `.env` variables.
 
 ## SELinux Note
 

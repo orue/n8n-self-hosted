@@ -14,6 +14,7 @@ HealthCmd=pg_isready -U n8n
 HealthInterval=10s
 HealthTimeout=5s
 HealthRetries=5
+HealthStartPeriod=30s
 Label=app=n8n
 
 [Service]

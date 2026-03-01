@@ -17,6 +17,7 @@ Environment=QUEUE_BULL_REDIS_HOST=redis
 Environment=QUEUE_BULL_REDIS_PORT=6379
 Volume=n8n-data.volume:/home/node/.n8n:Z
 Network=n8n-network.network
+UserNS=keep-id:uid=1000,gid=1000
 Label=app=n8n
 
 [Service]

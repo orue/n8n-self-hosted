@@ -26,8 +26,8 @@ Label=app=n8n
 [Service]
 Restart=always
 TimeoutStartSec=0
-ExecStartPre=/bin/sh -c 'until podman exec postgres pg_isready -U n8n; do sleep 2; done'
-ExecStartPre=/bin/sh -c 'until podman exec redis redis-cli ping; do sleep 2; done'
+ExecStartPre=/bin/sh -c 'i=0; until podman exec postgres pg_isready -U n8n 2>/dev/null; do i=$((i+1)); [ $i -ge 60 ] && exit 1; sleep 2; done'
+ExecStartPre=/bin/sh -c 'i=0; until podman exec redis redis-cli ping 2>/dev/null; do i=$((i+1)); [ $i -ge 30 ] && exit 1; sleep 2; done'
 
 [Install]
 WantedBy=default.target

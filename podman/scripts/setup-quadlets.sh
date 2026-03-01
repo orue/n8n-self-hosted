@@ -87,6 +87,18 @@ fi
 
 echo "✓ .env validated"
 
+# Check N8N_ENCRYPTION_KEY — if empty, generate one and persist it
+ENCRYPTION_KEY_VALUE=$(grep '^N8N_ENCRYPTION_KEY=' "$PROJECT_DIR/.env" | cut -d'=' -f2-)
+if [ -z "$ENCRYPTION_KEY_VALUE" ]; then
+    echo ""
+    echo "⚠ N8N_ENCRYPTION_KEY is not set. Generating a secure key..."
+    NEW_KEY=$(openssl rand -hex 32)
+    sed -i "s|^N8N_ENCRYPTION_KEY=.*|N8N_ENCRYPTION_KEY=${NEW_KEY}|" "$PROJECT_DIR/.env"
+    echo "  ✓ Key generated and saved to .env"
+    echo "  IMPORTANT: Back up your .env file — losing this key means losing access to stored credentials."
+    echo ""
+fi
+
 # Install Quadlet unit files
 echo "Installing Quadlet unit files to $SYSTEMD_USER_DIR..."
 mkdir -p "$SYSTEMD_USER_DIR"

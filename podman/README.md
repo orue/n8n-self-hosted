@@ -27,7 +27,7 @@ Set at minimum: `POSTGRES_PASSWORD`, `N8N_PASSWORD`, `N8N_HOST`, `N8N_SECURE_COO
 From the **project root**:
 
 ```bash
-./init-project.sh --runtime=quadlets
+./setup.sh
 ```
 
 Or directly:

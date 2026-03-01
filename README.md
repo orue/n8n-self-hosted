@@ -1,41 +1,23 @@
-# N8N Deployment with Workers
+# N8N Deployment
 
-Self-hosted N8N workflow automation with queue-based worker architecture.
+Self-hosted N8N workflow automation with queue-based worker architecture, deployed via Podman Quadlets on Linux + systemd.
 
 ## Architecture
 
-- **PostgreSQL**: Data persistence
-- **Redis**: Queue management
-- **N8N Main**: Web UI and API server
-- **N8N Workers**: Workflow execution (2 workers, scalable)
+- **PostgreSQL** — data persistence
+- **Redis** — queue management
+- **N8N Main** — web UI and API server (port 5678)
+- **N8N Workers** — workflow execution (2 workers, scalable)
 
-## Runtime Support
+## Requirements
 
-| Scenario | Host | Tool | Recommended |
-|----------|------|------|-------------|
-| Podman Quadlets | Linux + systemd | native systemd units | **Yes — Linux production** |
-| Docker / podman-compose | Linux / macOS | `docker compose` / `podman compose` | macOS or Docker hosts |
-
-> **Ubuntu 24.04 LTS:** `./init-project.sh` auto-detects Linux+systemd and defaults to Quadlets.
-> Pass `--runtime=compose` to force compose instead.
-
----
-
-## Quick Start
-
-### Option A — Podman Quadlets (Recommended on Linux + systemd)
-
-> Native systemd unit files managed by Podman — the recommended production approach on Ubuntu 24.04+ and any Linux host with systemd.
-
-#### Prerequisites
-
+- Linux host with systemd (Ubuntu 24.04 LTS recommended)
 - Podman >= 4.4
 - Rootless Podman configured (`/etc/subuid` and `/etc/subgid` entries)
-- systemd user session active
 
-#### 1. Configure Environment
+## Setup
 
-On first run the script creates `.env` from the template and exits — so configure it before starting services:
+### 1. Configure Environment
 
 ```bash
 cp .env.example .env
@@ -44,45 +26,41 @@ nano .env
 
 **Required changes:**
 
-- `POSTGRES_PASSWORD`: Strong database password
-- `N8N_PASSWORD`: Your N8N login password
-- `N8N_HOST`: Your server IP address or domain
-- `N8N_SECURE_COOKIE`: Set `false` for HTTP, `true` when behind an HTTPS reverse proxy
+- `POSTGRES_PASSWORD` — strong database password
+- `N8N_PASSWORD` — your N8N login password
+- `N8N_HOST` — your server IP address or domain
+- `N8N_SECURE_COOKIE` — `false` for HTTP, `true` behind an HTTPS reverse proxy
 
-#### 2. Run Setup
-
-```bash
-./init-project.sh
-```
-
-On Linux+systemd this auto-selects Quadlets. Or run explicitly:
+### 2. Run Setup
 
 ```bash
-./init-project.sh --runtime=quadlets
+./setup.sh
 ```
 
 This will:
+
 1. Validate Podman version and rootless configuration
 2. Create data directories
 3. Install Quadlet unit files to `~/.config/containers/systemd/`
 4. Enable linger for boot persistence
 5. Start services in order: postgres → redis → n8n-main → workers
 
-> **Note:** First run pulls container images and initialises the database.
-> PostgreSQL setup can take up to 2 minutes; n8n image pull may take several minutes
-> depending on your connection. This is normal — subsequent starts are fast.
+> **First run:** PostgreSQL initialisation takes up to 2 minutes. The n8n image pull
+> may take several minutes depending on your connection. Subsequent starts are fast.
 
-#### 3. Access N8N
+### 3. Access N8N
 
 Open browser: `http://YOUR_SERVER_IP:5678`
 
-#### 4. Managing Quadlet Services
+---
+
+## Service Management
 
 ```bash
 # Check status
 systemctl --user is-active n8n-postgres n8n-redis n8n-main 'n8n-worker@1' 'n8n-worker@2'
 
-# Start / Stop / Restart
+# Start / stop / restart
 systemctl --user start n8n-main.service
 systemctl --user stop n8n-main.service
 systemctl --user restart n8n-main.service
@@ -98,136 +76,30 @@ journalctl --user -u 'n8n-worker@1' --follow
 ./podman/scripts/backup.sh
 ```
 
----
-
-### Option B — Docker or Podman (compose)
-
-> Use this on macOS, Docker hosts, or when you explicitly prefer compose over Quadlets.
-
-#### 1. Initial Setup
-
-```bash
-./init-project.sh --runtime=compose
-```
-
-The script auto-detects whether Docker or Podman is available.
-
-#### 2. Configure Environment
-
-```bash
-nano .env
-```
-
-**Required changes:** `POSTGRES_PASSWORD`, `N8N_PASSWORD`, `N8N_HOST`, `N8N_SECURE_COOKIE`
-
-#### 3. Start N8N
-
-```bash
-# Docker
-docker compose up -d
-
-# Podman
-podman compose up -d
-```
-
-#### 4. Access N8N
-
-Open browser: `http://YOUR_SERVER_IP:5678`
-
----
-
-## Management Commands (Option B — compose)
-
-### Start/Stop
-
-```bash
-# Start
-docker compose up -d        # or: podman compose up -d
-
-# Stop
-docker compose down         # or: podman compose down
-
-# Restart
-docker compose restart      # or: podman compose restart
-```
-
-### Logs
-
-```bash
-# All services
-docker compose logs -f
-
-# Specific service
-docker compose logs -f n8n-main
-docker compose logs -f n8n-worker-1
-```
-
-### Status
-
-```bash
-# Container status
-docker compose ps
-
-# Health check
-./scripts/health-check.sh
-
-# Resource usage
-docker stats      # or: podman stats
-```
-
-### Backup & Restore
-
-```bash
-# Create backup (Option A — Quadlets)
-./podman/scripts/backup.sh
-
-# Create backup (Option B — compose)
-./scripts/backup.sh
-
-# Backups are stored in: ./backups/
-```
-
 ## Scaling Workers
 
-For Option A (Quadlets), start additional worker instances:
+Start additional worker instances:
 
 ```bash
 systemctl --user start 'n8n-worker@3.service'
 ```
 
-> **Note:** `systemctl enable` does not work on quadlet-generated units (see Troubleshooting).
-> Extra instances beyond `@1` and `@2` do not auto-start after reboot. To make them permanent,
-> add the corresponding `systemctl --user start` calls to `podman/scripts/setup-quadlets.sh`.
-
-For Option B (compose), scale dynamically:
-
-```bash
-docker compose up -d --scale n8n-worker-1=4
-```
-
-## Troubleshooting
-
-### `Failed to enable unit: Unit … is transient or generated` (Quadlets)
-
-Quadlet units are generated by systemd into `/run/user/UID/systemd/generator/` — a
-transient, read-only directory. `systemctl enable` cannot write symlinks there and will
-fail with this error.
-
-**Do not use `systemctl enable` on quadlet units.** Boot persistence is handled automatically:
-
-- Each `.container` file has `WantedBy=default.target` in its `[Install]` section, which
-  the quadlet generator turns into a wants-symlink on every `daemon-reload`.
-- `loginctl enable-linger` (run by the setup script) ensures the user session — and all
-  its units — starts at boot without an interactive login.
-
-Use `systemctl --user start` to bring units up manually, and rely on the generator for
-everything else.
+> Extra instances beyond `@1` and `@2` do not auto-start after reboot. To make them
+> permanent, add the corresponding `start` call to `podman/scripts/setup-quadlets.sh`.
 
 ---
 
-### `n8n-main.service` fails or keeps restarting (Quadlets)
+## Troubleshooting
 
-If `systemctl --user status n8n-main.service` shows the service failing or restarting repeatedly, check the logs:
+### `Failed to enable unit: Unit … is transient or generated`
+
+Quadlet units live in a read-only generated directory. **Never use `systemctl enable`** on them.
+Boot persistence is automatic via `WantedBy=default.target` + `loginctl enable-linger`.
+Use `systemctl --user start` to bring units up manually.
+
+### `n8n-main.service` fails or keeps restarting
+
+Check the logs:
 
 ```bash
 journalctl --user -xeu n8n-main.service --no-pager | tail -50
@@ -239,76 +111,69 @@ Common causes:
 - **Wrong `.env` values** — verify `POSTGRES_PASSWORD`, `N8N_USER`, `N8N_PASSWORD` are set correctly
 - **Database not ready** — postgres takes up to 2 minutes on first run; re-run setup if it timed out early
 
+### Reset everything
+
+```bash
+systemctl --user stop n8n-main 'n8n-worker@1' 'n8n-worker@2' n8n-redis n8n-postgres
+podman volume rm n8n-data n8n-postgres n8n-redis
+rm ~/.config/containers/systemd/n8n-*.{network,volume,container}
+systemctl --user daemon-reload
+./setup.sh
+```
+
 ---
 
-### Check container logs
+## Backup & Restore
 
 ```bash
-# Option A — Quadlets
-journalctl --user -u n8n-main --no-pager
-
-# Option B — compose
-docker compose logs n8n-main
+./podman/scripts/backup.sh
 ```
 
-### Restart specific service
+Backups are written to `backups/` and include a full PostgreSQL dump, N8N data, and a copy of `.env`.
+The last 7 backups are retained automatically.
 
-```bash
-# Option A — Quadlets
-systemctl --user restart n8n-main.service
-
-# Option B — compose
-docker compose restart n8n-main
-```
-
-### Reset everything (Option B — compose)
-
-```bash
-docker compose down -v
-rm -rf data/*
-./init-project.sh --runtime=compose
-```
+---
 
 ## Security Notes
 
-- Never commit `.env` file to Git
+- Never commit `.env` to Git
 - Use strong passwords
-- Consider using HTTPS with a reverse proxy (set `N8N_SECURE_COOKIE=true`)
-- Regularly backup your data
-- Keep container images updated
+- Consider HTTPS with a reverse proxy (`N8N_SECURE_COOKIE=true`)
+- Keep container images updated with periodic `podman pull n8nio/n8n:latest` + restart
+
+---
 
 ## Directory Structure
 
 ```text
 .
-├── docker-compose.yml      # Services definition (compose)
-├── init-project.sh         # Entry point: auto-detects Quadlets on Linux+systemd
+├── setup.sh                # Entry point
 ├── .env                    # Environment variables (not in git)
 ├── .env.example            # Template for .env
+├── backups/                # Backup storage (not in git)
 ├── data/                   # Persistent data (not in git)
-│   ├── n8n/               # N8N workflows and credentials
-│   ├── postgres/          # Database files
-│   └── redis/             # Redis data
-├── backups/               # Backup storage (not in git)
-├── scripts/               # Option B (compose) management scripts
-│   ├── setup.sh          # Initial setup (runtime-aware)
-│   ├── backup.sh         # Backup automation
-│   └── health-check.sh   # System health check
-└── podman/                # Option A (Quadlets)
-    ├── README.md          # Quadlet-specific documentation
-    ├── quadlets/          # Systemd unit files
-    └── scripts/           # Quadlet management scripts
+└── podman/
+    ├── README.md           # Quadlet reference documentation
+    ├── quadlets/           # Systemd unit files
+    │   ├── n8n-network.network
+    │   ├── n8n-postgres.volume
+    │   ├── n8n-redis.volume
+    │   ├── n8n-data.volume
+    │   ├── n8n-postgres.container
+    │   ├── n8n-redis.container
+    │   ├── n8n-main.container
+    │   └── n8n-worker@.container
+    └── scripts/
         ├── setup-quadlets.sh
         ├── backup.sh
         └── health-check.sh
 ```
 
+---
+
 ## Additional Resources
 
 - [N8N Documentation](https://docs.n8n.io)
-- [N8N Community](https://community.n8n.io)
-- [Docker Documentation](https://docs.docker.com)
-- [Podman Documentation](https://docs.podman.io)
 - [Podman Quadlet Guide](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
 
 ## License

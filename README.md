@@ -12,47 +12,69 @@
 
 ## Table of Contents
 
-- [Architecture](#architecture)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Auto-Start on Reboot](#auto-start-on-reboot)
-- [Service Management](#service-management)
-- [Updating n8n](#updating-n8n)
-- [Backup & Restore](#backup--restore)
-- [Scaling Workers](#scaling-workers)
-- [Security Hardening](#security-hardening)
-- [Troubleshooting](#troubleshooting)
-- [Directory Structure](#directory-structure)
+- [n8n Self-Hosted — Podman Quadlets](#n8n-self-hosted--podman-quadlets)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture](#architecture)
+  - [Requirements](#requirements)
+  - [Quick Start](#quick-start)
+    - [1. Clone and configure](#1-clone-and-configure)
+    - [2. Run setup](#2-run-setup)
+    - [3. Open n8n](#3-open-n8n)
+  - [Auto-Start on Reboot](#auto-start-on-reboot)
+  - [Service Management](#service-management)
+  - [Updating n8n](#updating-n8n)
+  - [Backup \& Restore](#backup--restore)
+    - [Create a backup](#create-a-backup)
+    - [Restore](#restore)
+    - [Automate backups with cron](#automate-backups-with-cron)
+  - [Scaling Workers](#scaling-workers)
+  - [Security Hardening](#security-hardening)
+  - [Troubleshooting](#troubleshooting)
+    - [`Failed to enable unit: Unit … is transient or generated`](#failed-to-enable-unit-unit--is-transient-or-generated)
+    - [`n8n-main` keeps restarting](#n8n-main-keeps-restarting)
+    - [Permission error: `EACCES /home/node/.n8n/config`](#permission-error-eacces-homenoden8nconfig)
+    - [Reset everything](#reset-everything)
+  - [Directory Structure](#directory-structure)
+  - [Additional Resources](#additional-resources)
+  - [License](#license)
 
 ---
 
 ## Architecture
 
-```text
-                        ┌─────────────────────────────────────────────┐
-                        │            systemd user session             │
-                        │                                             │
-  Browser / API         │  ┌──────────────┐    ┌───────────────────┐  │
-  ──────────────────────┼─▶│  n8n-main    │    │  n8n-worker@1     │  │
-         :5678          │  │  (UI + API)  │    │  n8n-worker@2     │  │
-                        │  └──────┬───────┘    └────────┬──────────┘  │
-                        │         │  queue jobs         │ consume     │
-                        │         ▼                     ▼             │
-                        │  ┌──────────────┐    ┌───────────────────┐  │
-                        │  │  PostgreSQL  │    │      Redis        │  │
-                        │  │  (data/creds)│    │  (job queue)      │  │
-                        │  └──────────────┘    └───────────────────┘  │
-                        │                                             │
-                        │  All containers share: n8n-network (bridge) │
-                        └─────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    browser[Browser / API]
+
+  subgraph systemd["systemd user session"]
+        direction TB
+
+    subgraph net["n8n-network (bridge)"]
+            direction LR
+      main["n8n-main\n(UI + API)"]
+      worker1["n8n-worker@1"]
+      worker2["n8n-worker@2"]
+      postgres["PostgreSQL\n(data/creds)"]
+      redis["Redis\n(job queue)"]
+        end
+
+        main --> postgres
+    worker1 --> postgres
+    worker2 --> postgres
+        main -->|queue jobs| redis
+        redis -->|consume| worker1
+        redis -->|consume| worker2
+    end
+
+    browser -->|port 5678| main
 ```
 
-| Container            | Image                | Role                                          |
-| -------------------- | -------------------- | --------------------------------------------- |
-| `postgres`           | `postgres:15-alpine` | Workflow data, credentials, execution history |
-| `redis`              | `redis:7-alpine`     | Bull job queue (AOF persistence)              |
-| `n8n-main`           | `n8nio/n8n:latest`   | Web UI, REST API, webhook receiver            |
-| `n8n-worker@1`, `@2` | `n8nio/n8n:latest`   | Execute queued workflow jobs                  |
+| Unit (systemd)       | ContainerName        | Image                | Role                                          |
+| -------------------- | -------------------- | -------------------- | --------------------------------------------- |
+| `n8n-postgres`       | `postgres`           | `postgres:15-alpine` | Workflow data, credentials, execution history |
+| `n8n-redis`          | `redis`              | `redis:7-alpine`     | Bull job queue (AOF persistence)              |
+| `n8n-main`           | `n8n-main`           | `n8nio/n8n:latest`   | Web UI, REST API, webhook receiver            |
+| `n8n-worker@1`, `@2` | `n8n-worker-1`, `-2` | `n8nio/n8n:latest`   | Execute queued workflow jobs                  |
 
 **Why Podman Quadlets?**
 Quadlets are systemd unit files managed by Podman's built-in generator — no Docker daemon, no docker-compose, no root. Containers run as your own user and restart automatically like any other systemd service.

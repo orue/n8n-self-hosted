@@ -42,32 +42,8 @@
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    browser[Browser / API]
+  <img alt="n8n-self-hosted" src="./images/n8n-self-hosted.png">
 
-  subgraph systemd["systemd user session"]
-        direction TB
-
-    subgraph net["n8n-network (bridge)"]
-            direction LR
-      main["n8n-main\n(UI + API)"]
-      worker1["n8n-worker@1"]
-      worker2["n8n-worker@2"]
-      postgres["PostgreSQL\n(data/creds)"]
-      redis["Redis\n(job queue)"]
-        end
-
-        main --> postgres
-    worker1 --> postgres
-    worker2 --> postgres
-        main -->|queue jobs| redis
-        redis -->|consume| worker1
-        redis -->|consume| worker2
-    end
-
-    browser -->|port 5678| main
-```
 
 | Unit (systemd)       | ContainerName        | Image                | Role                                          |
 | -------------------- | -------------------- | -------------------- | --------------------------------------------- |

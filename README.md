@@ -42,7 +42,10 @@
 
 ## Architecture
 
-  <img alt="n8n-self-hosted" src="./images/n8n-self-hosted.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./images/n8n-self-hosted-dark.png">
+  <img alt="n8n-self-hosted" src="./images/n8n-self-hosted-light.png">
+</picture>
 
 
 | Unit (systemd)       | ContainerName        | Image                | Role                                          |

@@ -383,4 +383,4 @@ systemctl --user daemon-reload
 ## License
 
 n8n is [fair-code](https://faircode.io) licensed. See the [n8n license](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) for details.
-The deployment scripts and configuration in this repository are released under the [Apache 2.0 License](LICENSE).
+The deployment scripts and configuration in this repository are released under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0).
